@@ -37,30 +37,28 @@ def creation(donnees):
     
     return diapo
 
-# Calcul du score: 
+# On calcule le score entre deux diapositives: 
 def evaluation(a, b):
     t1 = {t for p in a for t in p["tags"]}
     t2 = {t for p in b for t in p["tags"]}
     return min(len(t1 & t2), len(t1 - t2), len(t2 - t1))
 
-# On utilise gurobipy pour optimiser notre diapo: 
+# On cherche à optimiser notre diapo avec pour objectif de maximiser la somme des scores: 
 def optimisation(diapo):
     m = gp.Model("Diapo")
     n = len(diapo)
-    
     x = {(i, j): m.addVar(vtype=GRB.BINARY) for i in range(n) for j in range(n)}
-    
+
     for i in range(n):
         m.addConstr(sum(x[i, j] for j in range(n)) == 1)
         m.addConstr(sum(x[j, i] for j in range(n)) == 1)
-    
     m.setObjective(sum(evaluation(diapo[i], diapo[j]) * x[i, j] for i in range(n) for j in range(n)), GRB.MAXIMIZE)
-    m.optimize()
-    
+    m.optimize()  
+    print(f"Score optimal : {m.ObjVal}")
     ordre = sorted(range(n), key=lambda j: sum(x[i, j].x for i in range(n)), reverse=True)
     return [diapo[i] for i in ordre]
 
-
+#pour créer le fichier sildeshow.sol avec le diapo le plus optimal dedans:
 def sortie(fichier_sortie, diapo):
     with open(fichier_sortie, 'w') as f:
         f.write(f"{len(diapo)}\n")
@@ -68,7 +66,7 @@ def sortie(fichier_sortie, diapo):
             f.write(" ".join(str(p["id"]) for p in s) + "\n")
 
 
-# fonction principale: 
+# fonction principale pour lancer le code: 
 def main():
     if len(sys.argv) != 2:
         print("Usage: python slideshow.py <fichierDonnees>")
@@ -79,7 +77,7 @@ def main():
     diapositives = creation(photos)
     diaporama_optimise = optimisation(diapositives)
     sortie("slideshow.sol", diaporama_optimise)
-    print("Diaporama optimisé généré dans slideshow.sol")
+    
 
 if __name__ == "__main__":
     main()
