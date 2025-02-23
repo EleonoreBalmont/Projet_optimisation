@@ -24,7 +24,7 @@ def creat(donnees):
     diapo = horiz[:]
     if len(vert) > 1:
         paires = list(combinations(vert, 2))
-        paires.sort(key=lambda p: -len((p[0]["tags"] | p[1]["tags"]) - (p[0]["tags"] & p[1]["tags"])))
+        paires.sort(key=lambda p: -len(p[0]["tags"] ^ p[1]["tags"]))
         util = set()
         for p1, p2 in paires:
             if p1["id"] not in util and p2["id"] not in util:
@@ -55,7 +55,7 @@ def opti(diapo):
                 m.addConstr(r[i] - r[j] + n * x[i, j] <= n - 1)
     
     m.setObjective(
-        sum((eval(diapo[i], diapo[j])[0] ** 6) * x[i, j] for i in range(n) for j in range(n) if i != j),
+        sum((eval(diapo[i], diapo[j])[0] ** 5) * x[i, j] for i in range(n) for j in range(n) if i != j),
         GRB.MAXIMIZE
     )
     
@@ -72,8 +72,19 @@ def opti(diapo):
         ordre.append(suiv)
         vis.add(suiv)
         cour = suiv
+    
+    return post_process([diapo[i] for i in ordre])
 
-    return [diapo[i] for i in ordre]
+def post_process(diapo):
+    improved = True
+    while improved:
+        improved = False
+        for i in range(len(diapo) - 1):
+            for j in range(i + 1, len(diapo)):
+                if eval(diapo[i], diapo[j])[0] > eval(diapo[i], diapo[i + 1])[0]:
+                    diapo[i + 1], diapo[j] = diapo[j], diapo[i + 1]
+                    improved = True
+    return diapo
 
 def sortie(f_sortie, diapo):
     with open(f_sortie, 'w') as f:
